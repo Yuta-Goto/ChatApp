@@ -19,7 +19,7 @@ class ChatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: '失敗してなんぼ',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 8),
 
               TextFormField(
-                decoration: InputDecoration(labelText: "パスワード（６文字以上）"),
+                decoration: InputDecoration(labelText: "パスワード(6文字以上)"),
                 // パスワードが見えないようにする
                 obscureText: true,
                 onChanged: (String value) {
@@ -120,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
               //Login action
 
               TextFormField(
-                decoration: InputDecoration(labelText: "mail address"),
+                decoration: InputDecoration(labelText: "メールアドレス"),
                 onChanged: (String value){
                   setState(() {
                     loginUserEmail=value;
@@ -129,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
 
               TextFormField(
-                decoration: InputDecoration(labelText: "password"),
+                decoration: InputDecoration(labelText: "パスワード"),
                 obscureText: true,
                 onChanged: (String value){
                   setState(() {
@@ -163,7 +163,7 @@ class _LoginPageState extends State<LoginPage> {
                   } catch (e) {
                     // ログインに失敗した場合
                     setState(() {
-                      infoText = "login NG:${e.toString()}";
+                      infoText = "ログインNG:${e.toString()}";
                     });
                   }
                 },
@@ -196,7 +196,7 @@ class ChatPage extends StatelessWidget{
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
-        title: Text('chat page'),
+        title: Text('一覧'),
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.logout),
@@ -223,7 +223,7 @@ class ChatPage extends StatelessWidget{
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                 .collection('posts')
-                .orderBy('date')
+                .orderBy('date',descending: true)
                 .snapshots(),
               builder: (context, snapshot){
                 if(snapshot.hasData){
@@ -233,11 +233,33 @@ class ChatPage extends StatelessWidget{
                     children: documents.map((documents) {
                       return Card(
                         child: ListTile(
-                          title: Text(documents['text']),
-                          subtitle: Text(documents['email']),
 
-                          trailing: documents['email'] == user.email
-                            ? IconButton(
+                          leading: ((){
+                            if(documents['email'] == user.email){
+                             
+                             return IconButton(
+                              icon: Icon(Icons.edit),
+                              onPressed: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (context){
+                                    return EditPage(user);
+                                  }),
+                                );
+                              },
+                            );
+                            
+                          }
+                          })(),
+
+                          title: (documents['email'] == user.email) ? Text(documents['text']): null,
+                          //subtitle: Text(documents['email']),
+
+                          
+                          
+                          trailing: ((){
+                            if(documents['email'] == user.email){
+                             
+                             return IconButton(
                               icon: Icon(Icons.delete),
                               onPressed: () async {
                                 await FirebaseFirestore.instance
@@ -245,8 +267,11 @@ class ChatPage extends StatelessWidget{
                                   .doc(documents.id)
                                   .delete();
                               },
-                            )
-                          :null,
+                            );
+                            
+                          }
+                          })(),
+                          //:null,
                         ),
                       );
                     }).toList(),
@@ -292,7 +317,7 @@ class _AddPostPageState extends State<AddPostPage> {
   Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
-        title: Text('チャット投稿'),
+        title: Text('失敗書き出しスペース'),
       ),
       body: Center(
         child: Container(
@@ -301,7 +326,7 @@ class _AddPostPageState extends State<AddPostPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               TextFormField(
-                decoration: InputDecoration(labelText: '投稿メッセージ'),
+                decoration: InputDecoration(labelText: '全て受け入れます'),
                 keyboardType: TextInputType.multiline,
                 maxLines: 3,
                 onChanged: (String value){
@@ -328,6 +353,129 @@ class _AddPostPageState extends State<AddPostPage> {
                         'date': date
                       });
                       Navigator.of(context).pop();
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+class EditPage extends StatefulWidget{
+  EditPage(this.user);
+  final User user;
+
+  @override 
+  _EditPageState createState() => _EditPageState();
+}
+
+class _EditPageState extends State<EditPage> {
+
+  String messageText='';
+
+  var _controller = TextEditingController();
+
+  @override 
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('深ぼり'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async{
+              Navigator.of(context).pop();
+            }
+          ),
+        ],
+      ),
+      body: Center(
+        child: Container(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                    .collection('details')
+                    .orderBy('date',descending: true)
+                    .snapshots(),
+                  builder: (context, snapshot){
+                    if(snapshot.hasData){
+                      final List<DocumentSnapshot> documents=snapshot.data!.docs;
+
+                      
+                      return ListView(
+                        children: documents.map((documents){
+                          
+                          return Card(
+                            child: ListTile(
+                              title: (documents['email']==widget.user.email) ? Text(documents['text']):null,
+                            ),
+                          );
+                          
+                        }).toList(),
+                      );
+                      
+                      
+                    }
+                    return Center(
+                      child: Text('読み込み中...'),
+                    );
+                  },
+                ),
+              ),
+              
+              TextFormField(
+                
+                controller: _controller,
+                decoration: InputDecoration(labelText: 'ひたすら深ぼりましょう！'),
+                keyboardType: TextInputType.multiline,
+                maxLines: 3,
+                onChanged: (String value){
+                  setState(() {
+                    messageText=value;
+                  });
+                  
+                },
+              ),
+              const SizedBox(height: 8),
+              Container(
+                
+                width: double.infinity,
+                child: ElevatedButton(
+                  
+                  child: Text('投稿'),
+                  onPressed: () async {
+                    final date= DateTime.now().toLocal().toIso8601String();
+                    final email = widget.user.email;
+                    //firestore用のドキュメント作成
+                    await FirebaseFirestore.instance
+                      .collection('details')
+                      .doc()
+                      .set({
+                        'text': messageText,
+                        'email': email,
+                        'date': date
+                      });
+                      _controller.clear();
+                      //Navigator.of(context).pop();
                   },
                 ),
               )
