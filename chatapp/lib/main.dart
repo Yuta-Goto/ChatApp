@@ -1,115 +1,488 @@
+import 'dart:html';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  // Firebase初期化
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: FirebaseOptions(apiKey: "AIzaSyBBvUnIhKMchDpUOO0LylQaY9X8macPLRk", appId: "1:644868127836:web:6b437cb5b0e2ca513d3a99", messagingSenderId: "644868127836", projectId: "connect-project-4b031",authDomain: "connect-project-4b031.firebaseapp.com",storageBucket: "connect-project-4b031.appspot.com")
+  );
+  runApp(ChatApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
+class ChatApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: '失敗してなんぼ',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: LoginPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
-  final String title;
-
+class LoginPage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class _LoginPageState extends State<LoginPage> {
+  // 入力されたメールアドレス
+  String newUserEmail = "";
+  // 入力されたパスワード
+  String newUserPassword = "";
+  // 登録・ログインに関する情報を表示
+  String infoText = "";
+
+  String loginUserEmail="";
+
+  String loginUserPassword="";
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+        child: Container(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+
+              TextFormField(
+                // テキスト入力のラベルを設定
+                decoration: InputDecoration(labelText: "メールアドレス"),
+                onChanged: (String value) {
+                  setState(() {
+                    newUserEmail = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+
+              TextFormField(
+                decoration: InputDecoration(labelText: "パスワード(6文字以上)"),
+                // パスワードが見えないようにする
+                obscureText: true,
+                onChanged: (String value) {
+                  setState(() {
+                    newUserPassword = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    // メール/パスワードでユーザー登録
+                    final FirebaseAuth auth = FirebaseAuth.instance;
+                    final UserCredential result =
+                        await auth.createUserWithEmailAndPassword(
+                      email: newUserEmail,
+                      password: newUserPassword,
+                    );
+
+                    //追加
+                    await Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context){
+                        return ChatPage(result.user!);
+                      }),
+                    );
+
+                    // 登録したユーザー情報
+                    //final User user = result.user!;
+                    //setState(() {
+                    //  infoText = "登録OK:${user.email}";
+                    //});
+                  } catch (e) {
+                    // 登録に失敗した場合
+                    setState(() {
+                      infoText = "登録NG:${e.toString()}";
+                    });
+                  }
+                },
+                child: Text("ユーザー登録"),
+              ),
+              const SizedBox(height: 8),
+
+              //Login action
+
+              TextFormField(
+                decoration: InputDecoration(labelText: "メールアドレス"),
+                onChanged: (String value){
+                  setState(() {
+                    loginUserEmail=value;
+                  });
+                },
+              ),
+
+              TextFormField(
+                decoration: InputDecoration(labelText: "パスワード"),
+                obscureText: true,
+                onChanged: (String value){
+                  setState(() {
+                    loginUserPassword=value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+
+              OutlinedButton(
+                onPressed: () async {
+                  try {
+                    // メール/パスワードでログイン
+                    final FirebaseAuth auth = FirebaseAuth.instance;
+                    final UserCredential result =
+                        await auth.signInWithEmailAndPassword(
+                      email: loginUserEmail,
+                      password: loginUserPassword,
+                    );
+
+                    await Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context){
+                        return ChatPage(result.user!);
+                      }),
+                    );
+                    // ログインに成功した場合
+                    //final User user = result.user!;
+                    //setState(() {
+                    //  infoText = "login OK:${user.email}";
+                    //});
+                  } catch (e) {
+                    // ログインに失敗した場合
+                    setState(() {
+                      infoText = "ログインNG:${e.toString()}";
+                    });
+                  }
+                },
+                child: Text("ログイン"),
+              ),
+              const SizedBox(height: 8),
+
+              Text(infoText),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+
+
+
+
+
+
+class ChatPage extends StatelessWidget{
+
+  ChatPage(this.user);
+
+  final User user;
+
+  @override 
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('一覧'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async{
+
+              await FirebaseAuth.instance.signOut();
+              await Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context){
+                  return LoginPage();
+                }),
+              );
+            },
+          ),
+        ],
+      ),
+
+      body: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(32),
+            child: Text('ログイン情報 ${user.email}'),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                .collection('posts')
+                .orderBy('date',descending: true)
+                .snapshots(),
+              builder: (context, snapshot){
+                if(snapshot.hasData){
+                  final List<DocumentSnapshot> documents = snapshot.data!.docs;
+
+                  return ListView(
+                    children: documents.map((documents) {
+                      return Card(
+                        child: ListTile(
+
+                          leading: ((){
+                            if(documents['email'] == user.email){
+                             
+                             return IconButton(
+                              icon: Icon(Icons.edit),
+                              onPressed: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (context){
+                                    return EditPage(user);
+                                  }),
+                                );
+                              },
+                            );
+                            
+                          }
+                          })(),
+
+                          title: (documents['email'] == user.email) ? Text(documents['text']): null,
+                          //subtitle: Text(documents['email']),
+
+                          
+                          
+                          trailing: ((){
+                            if(documents['email'] == user.email){
+                             
+                             return IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () async {
+                                await FirebaseFirestore.instance
+                                  .collection('posts')
+                                  .doc(documents.id)
+                                  .delete();
+                              },
+                            );
+                            
+                          }
+                          })(),
+                          //:null,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }
+                //データ読み込み中
+                return Center(
+                  child: Text('読み込み中...'),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        child: Icon(Icons.add),
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context){
+              return AddPostPage(user);
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AddPostPage extends StatefulWidget{
+  AddPostPage(this.user);
+  final User user;
+
+  @override 
+  _AddPostPageState createState() => _AddPostPageState();
+}
+
+
+class _AddPostPageState extends State<AddPostPage> {
+
+  String messageText='';
+
+  @override 
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('失敗書き出しスペース'),
+      ),
+      body: Center(
+        child: Container(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              TextFormField(
+                decoration: InputDecoration(labelText: '全て受け入れます'),
+                keyboardType: TextInputType.multiline,
+                maxLines: 3,
+                onChanged: (String value){
+                  setState(() {
+                    messageText=value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                child: ElevatedButton(
+                  child: Text('投稿'),
+                  onPressed: () async {
+                    final date= DateTime.now().toLocal().toIso8601String();
+                    final email = widget.user.email;
+                    //firestore用のドキュメント作成
+                    await FirebaseFirestore.instance
+                      .collection('posts')
+                      .doc()
+                      .set({
+                        'text': messageText,
+                        'email': email,
+                        'date': date
+                      });
+                      Navigator.of(context).pop();
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+class EditPage extends StatefulWidget{
+  EditPage(this.user);
+  final User user;
+
+  @override 
+  _EditPageState createState() => _EditPageState();
+}
+
+class _EditPageState extends State<EditPage> {
+
+  String messageText='';
+
+  var _controller = TextEditingController();
+
+  @override 
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('深ぼり'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async{
+              Navigator.of(context).pop();
+            }
+          ),
+        ],
+      ),
+      body: Center(
+        child: Container(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                    .collection('details')
+                    .orderBy('date',descending: true)
+                    .snapshots(),
+                  builder: (context, snapshot){
+                    if(snapshot.hasData){
+                      final List<DocumentSnapshot> documents=snapshot.data!.docs;
+
+                      
+                      return ListView(
+                        children: documents.map((documents){
+                          
+                          return Card(
+                            child: ListTile(
+                              title: (documents['email']==widget.user.email) ? Text(documents['text']):null,
+                            ),
+                          );
+                          
+                        }).toList(),
+                      );
+                      
+                      
+                    }
+                    return Center(
+                      child: Text('読み込み中...'),
+                    );
+                  },
+                ),
+              ),
+              
+              TextFormField(
+                
+                controller: _controller,
+                decoration: InputDecoration(labelText: 'ひたすら深ぼりましょう！'),
+                keyboardType: TextInputType.multiline,
+                maxLines: 3,
+                onChanged: (String value){
+                  setState(() {
+                    messageText=value;
+                  });
+                  
+                },
+              ),
+              const SizedBox(height: 8),
+              Container(
+                
+                width: double.infinity,
+                child: ElevatedButton(
+                  
+                  child: Text('投稿'),
+                  onPressed: () async {
+                    final date= DateTime.now().toLocal().toIso8601String();
+                    final email = widget.user.email;
+                    //firestore用のドキュメント作成
+                    await FirebaseFirestore.instance
+                      .collection('details')
+                      .doc()
+                      .set({
+                        'text': messageText,
+                        'email': email,
+                        'date': date
+                      });
+                      _controller.clear();
+                      //Navigator.of(context).pop();
+                  },
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
